@@ -2,6 +2,19 @@
 .env.*
 !.env.example
 node_modules/
+dist/
+*.tsbuildinfo
+coverage/
 
 # Graphify
+graphify-out
 graphify-out/**
+
+# Raw market data dumps (Questrade's terms may not allow sharing its data).
+/data/
+/evals/data/
+/evals/raw/
+*.csv
+*.ndjson
+*.parquet
+*.feather

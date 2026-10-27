@@ -1,0 +1,29 @@
+{
+  "name": "yuyu-fx",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -k -n server,web -c blue,magenta \"npm run dev -w @yuyufx/server\" \"npm run dev -w @yuyufx/web\"",
+    "test": "vitest run",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "build": "npm run build --workspaces --if-present",
+    "db:generate": "npm run db:generate -w @yuyufx/server",
+    "db:migrate": "npm run db:migrate -w @yuyufx/server",
+    "user:create": "npm run user:create -w @yuyufx/server",
+    "data:check": "npm run data:check -w @yuyufx/server --",
+    "data:sync": "npm run data:sync -w @yuyufx/server",
+    "backtest": "npm run backtest -w @yuyufx/server --"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.6",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5"
+  }
+}

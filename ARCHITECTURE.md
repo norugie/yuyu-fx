@@ -1,29 +1,33 @@
 # ARCHITECTURE — YuyuFX
 
-Status: **approved 2026-10-27** · Last updated: 2026-10-27
+Status: **approved 2026-10-27** · Last updated: 2026-10-27 (task 2.1)
 
 ## 1. Stack
 | Part | Choice | Why |
 |---|---|---|
 | Language | TypeScript (strict), front and back | Youmu's choice; one language end to end, types catch mistakes in money paths. |
-| Runtime | Node.js (LTS) | Youmu's choice. TODO: pin version at install. |
+| Runtime | Node.js 24 (LTS; 24.18 installed) | Youmu's choice. `engines.node` is `>=24`. `.env` is loaded with Node's built-in `process.loadEnvFile` (no dotenv); shell variables win over `.env`. |
 | API server | Express | Youmu's choice. One process holds the API, strategy engine, risk engine and scheduler to start. |
 | Database | PostgreSQL | Youmu's choice; transactional, holds bars, orders, fills, audit log and LLM calls. Not installed yet (Phase 0). |
-| ORM | Drizzle ORM | Youmu's choice; typed schema, parameterised queries, migrations in code. |
-| Validation | Zod | Validate every request body, broker response and LLM output at the boundary. |
+| ORM | Drizzle ORM + `pg` (node-postgres) driver | Youmu's choice; typed schema, parameterised queries. Migrations are SQL files generated with `drizzle-kit generate` into `drizzle/` and applied with `drizzle-kit migrate` (never `push`, so every schema change is reviewable and recorded). `pg` is Drizzle's default Postgres driver; postgres.js was the alternative. |
+| Validation | Zod | Validate every request body, broker response and LLM output at the boundary. Trading schemas live in `packages/shared/src/trading.ts`, shared by server and web. |
+| Money | Decimal strings in TypeScript/JSON (`"130.25"`), `numeric(14, 4)` in Postgres | Binary floats can't represent most prices exactly, and rounding errors add up in P&L. Arithmetic on them is decided in task 3.5. |
+| Simulated fills and costs | Pure rules in `apps/server/src/broker/fill-rules.ts`, applied by `broker/simulated.ts` in one DB transaction per step (open orders locked). Market: quote + 5 bp slippage, rounded to the TSX tick against you. Limit: fills at the quote once it reaches the limit. Stop: triggers at the stop, then fills like a market order. Bracket exits activate after the entry fills; one fills, the other is cancelled. Fees: CAD 0.01/share, min 1.00, max 0.5% (modelled on IBKR Canada fixed pricing). Whole fills only (no partial fills). | Charging realistic costs keeps paper results honest. Pure functions make every rule testable on fixed price paths. Money math is BigInt in 1/10,000-dollar units (`src/money.ts`). |
+| Prices (until Phase 4) | `PriceSource` interface (`apps/server/src/data/price-source.ts`) with a `manual` source: Youmu types prices, stored in `quotes` | Decision D1 (PRD Q5). A real data source implements the same interface. A quote is stale when it's from an earlier day in Toronto time; a TSX calendar refines this later. |
 | Background jobs | pg-boss (Postgres-backed queue) — proposed | Data sync and LLM calls take seconds; a queue in Postgres means no extra service. |
 | Frontend | React + Vite | Youmu's choice. |
-| UI | Tailwind CSS + shadcn/ui | Youmu's choice. |
+| UI | Tailwind CSS v4 (`@tailwindcss/vite`) + shadcn/ui (Nova preset, Radix base, Lucide icons, Geist font) | Youmu's choice. Components are copied into `apps/web/src/components/ui/` by the shadcn CLI, so they're our code. Routing is a ~40-line `src/lib/router.tsx` (six fixed pages), not a routing library; revisit if pages need parameters. |
 | Data fetching (web) | TanStack Query — proposed | Caching and refetching for dashboard data. |
 | Charts | Lightweight Charts — proposed | Candlestick charts. |
 | Live updates to browser | Server-Sent Events — proposed | Server pushes status and prices; simpler than WebSocket for one-way updates. |
 | Indicators | Own small TypeScript module (SMA, EMA, RSI, ATR) with tests | Easy to write, good learning exercise, no dependency. |
 | Local LLM | Ollama + `qwen3:14b` (candidate), via the `ollama` npm package or its OpenAI-compatible endpoint | Fits the RTX 4070 (about 9.3 GB of 12 GB). Compare in eval E3 with `qwen3.5:9b` and `qwen3:30b` (spills to RAM, slower, fine once a day). |
 | Broker | Paper: YuyuFX's own `simulated` broker. Live: `manual` adapter (prepared orders Youmu places by hand), optional read-only sync from Questrade (proposed, PRD Q2) | Canadian rules block Canadians from sending orders for TSX stocks from their own software. |
-| Market data | TODO (PRD Q5) | Free only. Cached in Postgres so each source is called once. |
-| Auth | Argon2id password hash, server sessions in httpOnly / Secure / SameSite=Strict cookies, CSRF protection, login rate limit | Single user with a login. 2FA (TOTP) later. |
-| Security headers | Helmet, strict CORS allowlist, Content Security Policy | Cheap protection for a money app. |
-| Tests | TODO (e.g. Vitest) | Decide in Phase 2. |
+| Market data | Questrade API, read-only personal app (PRD Q5/F10): `apps/server/src/data/questrade/`. Daily bars in `daily_bars` (synced with `npm run data:sync`), live quotes via `PriceSource` with typed-in fallback, refreshed every 60 s for symbols with open orders. | Free with the account; real-time TSX quotes (Questrade reports `delay` 0). Refresh tokens are single-use: each new one is stored encrypted (AES-256-GCM, `SECRETS_KEY`) before the access token is used; the `.env` token only bootstraps. |
+| Auth | Argon2id password hash (`@node-rs/argon2`, OWASP minimum: 19 MiB, 2 passes). Server sessions in a `sessions` table: the cookie holds a random token, the table stores only its HMAC-SHA256 (keyed by `SESSION_SECRET`). Cookie is httpOnly + SameSite=Strict, plus Secure when `WEB_ORIGIN` is https. 30-minute idle timeout, new session on every login. CSRF: Origin check on every state-changing `/api` request, plus a synchronizer token (per session, sent in `X-CSRF-Token`). Login rate limit 5 failures / 15 min per IP + username (in memory). | Single user with a login. 2FA (TOTP) later. Synchronizer token over double-submit cookie: we already keep sessions server-side, so the token can live there; it's OWASP's first recommendation. Own small modules instead of express-session / csurf / express-rate-limit: each piece is a few lines, fully tested, and csurf is deprecated. |
+| Security headers | Helmet (default headers incl. CSP on API responses), `cors` allowing only `WEB_ORIGIN` | Cheap protection for a money app. The dashboard's own CSP (served by Vite in dev) comes with deployment. |
+| Tests | Vitest | Same config style as Vite; one `npm test` runs every workspace (root `vitest.config.ts`, `test.projects`). Integration tests use the local Postgres but each test file gets its own throwaway schema (`test_<random>`, dropped afterwards), because the `yuyufx` role can't create databases; real data in `public` is never touched. They call the real Express app with Node's `fetch` (no supertest). |
+| Dev tooling | tsx (runs the server from TypeScript, `tsx watch` in dev), concurrently (runs server and web together for `npm run dev`) | tsx avoids a compile step while the app is local; concurrently is one small dev-only package versus hand-rolled process handling. A server compile step is added when deploying. |
 
 "Proposed" items come from the research report. Each is confirmed (with version and source) when installed, with the "why, and what was the smaller alternative" note from `CLAUDE.md`.
 
@@ -99,7 +103,7 @@ yuyu-fx/
   .env.example
 ```
 
-TODO: workspace tool (npm or pnpm workspaces). Tests go in a `tests/` folder per app.
+Workspace tool: **npm workspaces** (`apps/*`, `packages/*`). Shared TypeScript settings live in `tsconfig.base.json` (strict, `noUncheckedIndexedAccess`). `packages/shared` is consumed as TypeScript source (no build step). Tests go in a `tests/` folder per app.
 
 Rule: **strategies are plain functions** that take bars (only up to the current bar) and return proposed orders. That one rule lets backtest, paper and live share them.
 
@@ -171,4 +175,14 @@ Guards against backtests that lie: fill at the next bar (no look-ahead), use adj
 
 ## Sources (checked 2026-10-27)
 - Research report "YuyuFX research: building an AI-assisted stock trading system": https://claude.ai/artifact/2X3GqYgM3nZU9ZQrpQqTfZ. Its own sources are listed there (NautilusTrader, LEAN, TradingAgents, ai-hedge-fund, IBKR, Questrade, Alpaca, Ollama docs).
-- No version numbers pinned yet; each is recorded here when installed.
+- Versions installed in task 2.1, checked via `npm view <pkg> version` on 2026-10-27 (exact versions are in `package-lock.json`):
+  - Server: express 5.3.0, zod 4.6.7, tsx 4.23.15, @types/express 5.0.6, @types/node 24.19.2 (24.x line on purpose, to match the Node 24 runtime; latest is 26.6.5).
+  - Web: react 19.3.1, react-dom 19.3.1, vite 8.3.5, @vitejs/plugin-react 6.1.2, @types/react 19.3.0, @types/react-dom 19.3.0.
+  - Root: typescript 7.0.2 (the native-compiler release; still ships `tsc`), vitest 5.0.5, concurrently 10.0.6.
+- Task 2.2, checked via `npm view` on 2026-10-27: drizzle-orm 0.45.4 and drizzle-kit 0.31.11 (latest stable; 1.0 is still a release candidate), pg 8.23.1, @types/pg 8.23.1. Driver API checked in `drizzle-orm/node-postgres/driver.d.ts`; config options in `drizzle-kit/index.d.ts`. `npm audit`: 4 moderate, all from an old esbuild inside drizzle-kit (GHSA-67mh-4wv8-2f99, affects esbuild's dev server, which drizzle-kit does not use); dev-only, accepted for now.
+- Task 2.3, checked via `npm view` on 2026-10-27: @node-rs/argon2 2.2.2 (prebuilt binaries, no install script; Node 24's built-in `crypto.argon2` was the smaller alternative, but it's newer and would need hand-written hash-string parsing in security code), helmet 8.3.0, cors 2.8.6 + @types/cors 2.8.19. Argon2 settings: OWASP Password Storage Cheat Sheet. CSRF approach: OWASP CSRF Prevention Cheat Sheet (synchronizer token + Origin verification).
+- Task 2.4, checked via `npm view` on 2026-10-27: tailwindcss 4.3.3, @tailwindcss/vite 4.3.3, shadcn 4.22.1 (CLI, run as `npx shadcn@4.22.1 init -t vite -b radix -p nova` then `add badge card input label separator sheet empty table`), which installed radix-ui 1.8.1, class-variance-authority 0.7.1, lucide-react 1.61.0, tw-animate-css 1.4.0, @fontsource-variable/geist 5.3.0 and `cn` 0.5.0 (shadcn's own replacement for clsx + tailwind-merge; repo shadcn-ui/cn, maintainer shadcn). Install steps: ui.shadcn.com/docs/installation/vite and /docs/theming (read 2026-10-26). Difference from the docs: no `baseUrl` in tsconfig, because TypeScript 7 removed it; `paths` alone works.
+- Task 4 (2026-10-27): Questrade API docs (getting started, authorization, security, rate limiting; symbols/search, markets/quotes, markets/candles), as summarised by the coordinator and confirmed live: token response has `access_token`, `expires_in`, a new `refresh_token`, `api_server`; TSX symbols are `XXX.TO`; quotes include `delay` (0 for XIU/RY = real-time); daily candles' `start` carries the exchange date and offset. Market-data limit 20/s; 429 handled with wait + retry.
+- Data notes (checked on the synced data): no split-like jumps in XIU/RY over 10 years (only March 2020 moves); XIU has no bars for 2017-07-12 to 2017-07-27 on Questrade. Bars are price-only (dividends not included), so buy-and-hold returns are understated by the dividend yield; adjustment source still TODO.
+- Node `process.loadEnvFile`: Node.js docs, https://nodejs.org/api/process.html#processloadenvfilepath (behaviour "shell values are not overwritten" confirmed by a local test on Node 24.18).
+- Zod 4 `z.url({ protocol })`: zod.dev/api#urls; covered by `apps/server/tests/config.test.ts`.

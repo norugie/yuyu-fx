@@ -1,6 +1,6 @@
 # DESIGN — YuyuFX
 
-Status: **approved 2026-10-27** · Last updated: 2026-10-27
+Status: **approved 2026-10-27** · Last updated: 2026-10-27 (task 2.4: §3 and §6 proposals added, marked below)
 
 ## 1. Principles
 - **Let the layout explain.** No unnecessary secondary labels or descriptions. Position, grouping and hierarchy carry the meaning.
@@ -23,8 +23,18 @@ Status: **approved 2026-10-27** · Last updated: 2026-10-27
 TODO: confirm screens after PRD review.
 
 ## 3. Visual language
-- Color tokens (light and dark): TODO. Use shadcn/ui CSS variables; add semantic tokens for gain, loss, paper mode, live mode.
-- Type scale and fonts: TODO. Numbers in tabular figures so columns line up.
+- Color tokens (light and dark): shadcn/ui CSS variables (Nova preset, neutral base) in `apps/web/src/index.css`. **Proposal (2026-10-27, for Youmu to confirm):** semantic tokens, used as Tailwind colors (`text-gain`, `bg-paper`, …):
+
+  | Token | Light | Dark | Use | Contrast (WCAG) |
+  |---|---|---|---|---|
+  | `gain` | oklch(0.52 0.14 152) green | oklch(0.76 0.16 152) | positive P&L text | 5.1 on bg / 8.9 on dark card |
+  | `loss` | oklch(0.53 0.2 27) red | oklch(0.72 0.17 25) | negative P&L text | 5.9 / 6.7 |
+  | `paper` + `paper-foreground` | blue oklch(0.49 0.17 255) + white | oklch(0.5 0.16 255) + white | Paper mode badge | 6.1 / 5.8 |
+  | `live` + `live-foreground` | red oklch(0.53 0.21 27) + white | oklch(0.53 0.2 27) + white | Live mode badge | 5.6 / 5.6 |
+
+  All pairs pass AA (4.5:1); ratios computed from the oklch values. Paper is a calm blue, Live is the same red family as "danger", so live mode looks dangerous.
+- Theme: follows the system light/dark setting; a sun/moon button in the top bar overrides it (remembered in the browser). This answers §7 "dark mode by default?" with "system" (proposal).
+- Type scale and fonts. **Proposal:** Geist Variable (shadcn Nova preset default, self-hosted via `@fontsource-variable/geist`). Page title `text-xl` semibold; card titles `text-base` medium; body and tables `text-sm`; labels and secondary text `text-sm` in `muted-foreground`; headline numbers `text-2xl` semibold. Numbers use tabular figures (`tabular-nums`, on by default inside tables).
 - Spacing scale: Tailwind default scale.
 
 ## 4. Components
@@ -44,7 +54,8 @@ TODO: confirm screens after PRD review.
 - Gain/loss never shown by color alone (also sign or arrow).
 
 ## 6. Responsive behaviour
-- TODO: breakpoints. Desktop first (it's a dashboard); at phone width, tables become stacked rows and the kill switch stays reachable.
+- **Proposal (2026-10-27):** Tailwind's default breakpoints. Below `lg` (1024px): no sidebar, a top bar with a menu button that opens the navigation as a sheet from the left (the mode badge is in both the top bar and the sheet). From `lg`: fixed 240px sidebar. Stat tiles are 2 per row below `lg`, 4 from `lg`. Content max width 72rem (`max-w-6xl`). Checked at 390px and 1440px: no horizontal scroll.
+- Still to do when tables arrive (Phase 3): at phone width, tables become stacked rows, and the kill switch stays reachable.
 
 ## 7. Open questions
 - Live updates (websocket/SSE) or polling for the dashboard?

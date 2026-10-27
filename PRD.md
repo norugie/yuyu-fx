@@ -36,8 +36,8 @@ Most criteria below are placeholders to be filled in during Phase 1 review, once
 ### F1. Login and session (MVP)
 - **AC1.1** WHEN a visitor is not logged in AND opens any dashboard page or API route, THE system SHALL redirect to the login page (pages) or return 401 (API). [int]
 - **AC1.2** WHEN valid credentials are submitted, THE system SHALL start a session. [int]
-- **AC1.3** WHEN invalid credentials are submitted repeatedly, THE system SHALL rate-limit further attempts. [int] TODO: limit and window.
-- TODO: password storage method, 2FA yes/no, session length (see `ARCHITECTURE.md`).
+- **AC1.3** WHEN invalid credentials are submitted repeatedly, THE system SHALL rate-limit further attempts. [int] Limit: 5 failed attempts per IP + username in 15 minutes, then HTTP 429 until the window ends (decided 2026-10-27).
+- Decided 2026-10-27 (task 2.3): passwords stored as Argon2id hashes only; no sign-up page, accounts are made with `npm run user:create`; no 2FA in the MVP; sessions end after 30 idle minutes (`SESSION_IDLE_MINUTES`); same generic error for unknown user and wrong password. Details in `ARCHITECTURE.md` §1 and §9.
 
 ### F2. Dashboard: trades and status (MVP)
 - **AC2.1** WHEN Youmu opens the dashboard, THE system SHALL show open positions, recent orders with their status, and which strategies are on. [manual]
@@ -46,7 +46,10 @@ Most criteria below are placeholders to be filled in during Phase 1 review, once
 ### F3. Manual trading (MVP)
 - **AC3.1** WHEN Youmu submits a manual order, THE system SHALL validate it (symbol, quantity, order type) and pass it through the risk checks (F5) before it is executed (paper: in the simulator; live: as a prepared order, see F8). [unit]
 - **AC3.2** WHEN an order is placed, THE system SHALL record it with a timestamp, source (manual / rules / AI), and result (simulated fill, or the fill Youmu confirms in live mode). [int]
-- TODO: which order types (market, limit, stop) are in the MVP.
+- Decided 2026-10-27 (Youmu, D2): MVP order types are **market, limit and bracket** (entry + stop-loss + take-profit). No stand-alone stop orders yet.
+- Decided 2026-10-27 (Youmu, D3): until the full risk engine (Phase 5), AC3.1's risk checks are the basic sanity rules only (valid symbol, quantity cap, price within a few % of the last quote, paper mode only). Phase 5 adds the rest.
+- **Defaults (2026-10-27), Youmu may change:** paper account starts with **$100,000 CAD** (env `PAPER_STARTING_CASH`); **no short selling** (you can only sell shares you hold, and brackets must start with a buy); at most **10,000 shares per order**; a limit price must be within **10%** of the last price, and stop-loss / take-profit within **30%**; a buy must fit in the cash not already promised to open orders; the price must be from today. The limits live in `apps/server/src/risk/sanity.ts` (`SANITY_LIMITS`) and become settings with the risk engine (F5).
+- Simulated costs (defaults, Youmu may change): 5 bp slippage on market and stop fills; commission CAD 0.01/share, min 1.00, max 0.5% of the trade (modelled on IBKR Canada).
 
 ### F4. Automated strategies
 - **AC4.1** WHEN a strategy is switched on AND its signal fires, THE system SHALL create an order that goes through the same validation and risk checks as a manual order. [unit]
@@ -64,10 +67,24 @@ Most criteria below are placeholders to be filled in during Phase 1 review, once
 - **AC5.3** WHEN data is stale, the broker connection drops, or broker and database disagree on positions, THE system SHALL pause automation and show why. [int]
 - **AC5.2** WHEN Youmu presses the kill switch, THE system SHALL stop all strategies from placing new orders. [int]
 - Kill switch cancels all open orders; closing positions too is an option at press time.
+- **AC5.4** WHEN any order is placed (manual, rules or AI), THE system SHALL send it to the broker only through the risk engine; no other code path may place an order. [unit]
+- **AC5.5** WHEN today's loss reaches the daily limit, THE system SHALL stop automated orders until the next trading day; WHEN the drawdown from the equity peak reaches the limit, it SHALL stop them until Youmu re-enables automation. [int]
+- **AC5.6** WHEN Youmu changes a risk limit or re-enables automation, THE system SHALL ask for the password again. [int]
+- Decided 2026-10-27 (defaults, Youmu may change in Settings): values from ARCHITECTURE §6; halts (daily loss, drawdown, kill switch, stale data) stop **automated** orders (rules/AI) as §6 says, while manual orders keep passing the per-order rules; sells that only reduce a position skip the entry rules (stop required, risk per trade, position size, open positions, whitelist); whitelist starts as the market-data symbols (XIU, RY); max 10 orders per minute. The "broker and database disagree" pause applies to live mode (Phase 8): in paper mode the database is the broker.
 
 ### F6. Backtesting
 - **AC6.1** WHEN a strategy is run against historical data, THE system SHALL produce a report of trades and summary metrics. [int]
-- TODO: data source, metrics (see Evals).
+- **AC6.2** WHEN a strategy decides at a bar's close, THE system SHALL fill the order at the *next* bar's open plus slippage and fees, and the strategy SHALL only see bars up to the current one (no look-ahead). [unit]
+- **AC6.3** WHEN a backtest finishes, THE report SHALL show total return, max drawdown, Sharpe ratio, win rate and number of trades, for the in-sample period and the held-out last 30%, next to buy-and-hold of the benchmark (XIU). [unit]
+- **AC6.4** WHEN the same backtest is run twice on the same data and settings, THE system SHALL produce an identical report (same result hash). [int]
+- Data source decided 2026-10-27: Questrade (see Q5 and F10). Metrics: E1.
+
+### F10. Market data (Questrade, read-only)
+Decided 2026-10-27 (Youmu): Questrade's personal API app with read-only scopes (account + market data, no trading).
+- **AC10.1** WHEN the daily sync runs, THE system SHALL store daily bars (open, high, low, close, volume) for the configured symbols, fetching only what is missing, and running it twice SHALL not duplicate anything. [int]
+- **AC10.2** WHEN a price is needed (order ticket, risk check, resting orders), THE system SHALL use a fresh Questrade quote, and fall back to the last stored or typed-in price when Questrade is unavailable, showing which source and how old it is. [int]
+- **AC10.3** WHEN Questrade returns a new refresh token, THE system SHALL store it encrypted (AES-256-GCM) and use it next time; tokens SHALL never be logged, shown in the UI or sent to the LLM. [unit]
+- **AC10.4** WHEN Questrade rate-limits a request (HTTP 429), THE system SHALL wait and retry instead of failing the sync. [unit]
 
 ### F7. AI trading decisions (local LLM)
 The AI decides what to trade. Every AI decision goes through the deterministic risk checks (F5). In paper mode the app executes it automatically in its own simulator; in live mode it becomes a prepared order that Youmu places by hand (F8).
@@ -101,15 +118,16 @@ Decided 2026-10-27: Canadian rules (CIRO) stop Canadian residents from placing o
 
 ## 7. Open questions
 - ~~Q1. Paper only?~~ Answered 2026-10-27: real-money trading is wanted. Paper first for testing, then live (F8).
-- Q2. Which broker for live trades (placed by hand)? No broker is needed for paper mode. Since orders are placed by hand, any Canadian broker works. A broker with a free **read-only** API is a plus: it can feed TSX prices (Q5) and sync positions and fills (AC8.5–8.6). Proposed: **Questrade** (free read API for quotes, candles and account data; order API is partner-only, which doesn't matter now). IBKR Canada also works for placing by hand. Decide before Phase 8. Checked 2026-10-27: [Questrade API](https://www.questrade.com/api), [IBKR reply](https://community.portfolio123.com/t/canada-trading-with-interactive-brokers-is-now-enabled/70876?page=2).
+- ~~Q2.~~ **Decided 2026-10-27: Questrade** (read-only API for data and, later, account sync; live orders placed by hand in Questrade). Original question: Which broker for live trades (placed by hand)? No broker is needed for paper mode. Since orders are placed by hand, any Canadian broker works. A broker with a free **read-only** API is a plus: it can feed TSX prices (Q5) and sync positions and fills (AC8.5–8.6). Proposed: **Questrade** (free read API for quotes, candles and account data; order API is partner-only, which doesn't matter now). IBKR Canada also works for placing by hand. Decide before Phase 8. Checked 2026-10-27: [Questrade API](https://www.questrade.com/api), [IBKR reply](https://community.portfolio123.com/t/canada-trading-with-interactive-brokers-is-now-enabled/70876?page=2).
 - ~~Q3. Timezone?~~ Answered: Pacific. The 7:30–9:30 AM window falls inside TSX hours.
 - ~~Q4. What is the LLM for?~~ Answered: decide trades, executed automatically in paper mode and prepared for Youmu in live mode, after risk checks (F7). PC: RTX 4070 (12 GB VRAM), 32 GB RAM. Research suggests `qwen3:14b`. TODO: confirm with eval E3 before deciding.
-- Q5. Free market-data source for TSX daily prices. Options (from the research report; to verify before building data ingest):
+- ~~Q5.~~ **Decided 2026-10-27: (a) Questrade API** (F10). Typed-in prices stay as a fallback. Original question: Free market-data source for TSX daily prices. Options (from the research report; to verify before building data ingest):
   - (a) **Questrade API**: free quotes and daily candles for TSX stocks, with a Questrade account (also covers Q2).
   - (b) **IBKR's own data**, with an IBKR account. TSX data may need a paid subscription; check the cost.
   - (c) **Alpha Vantage** free tier: daily adjusted prices, no broker account, but only 25 requests/day. Good as a backup. TODO: confirm TSX coverage.
   - Free extras either way: Bank of Canada Valet API (rates, FX), SEDAR+ (Canadian filings, no API), SEC EDGAR and FRED (US).
   - Proposed: (a), with (c) as a backup. Paper mode only needs data, so this is needed from Phase 4 on.
+  - Decided 2026-10-27 (Youmu, D1): **until Phase 4, prices are typed in by Youmu** (stored as quotes with source `manual`, behind a `PriceSource` interface so a real source can replace it).
 - ~~Q6. 2FA?~~ Answered: not for now.
 - Q7. Findings from the open-source trading systems research may change F4, F6 and the stack.
 - ~~Q8. Rules for advising others?~~ Answered: avoided by keeping Youmu as the only user. Login stays; 2FA later.

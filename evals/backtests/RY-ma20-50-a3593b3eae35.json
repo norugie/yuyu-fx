@@ -1,0 +1,415 @@
+{
+  "engineVersion": "1",
+  "strategy": "MA crossover 20/50",
+  "symbol": "RY",
+  "benchmark": "XIU",
+  "params": {
+    "fast": 20,
+    "slow": 50,
+    "cashShare": 0.98
+  },
+  "startingCash": "100000.0000",
+  "costs": {
+    "slippageBps": 5,
+    "feePerShare": "0.0100",
+    "minFee": "1.0000",
+    "maxFeeBps": 50
+  },
+  "period": {
+    "from": "2016-10-25",
+    "to": "2026-10-26",
+    "holdoutFrom": "2023-10-26",
+    "bars": 2510
+  },
+  "all": {
+    "strategy": {
+      "from": "2016-10-25",
+      "to": "2026-10-26",
+      "days": 2510,
+      "startEquity": 100000,
+      "endEquity": 192735.05,
+      "totalReturn": 0.9273505,
+      "maxDrawdown": -0.32535019086268113,
+      "sharpe": 0.6647413454608135,
+      "roundTrips": 22,
+      "winRate": 0.4090909090909091
+    },
+    "benchmark": {
+      "from": "2016-10-25",
+      "to": "2026-10-26",
+      "days": 2498,
+      "startEquity": 100000,
+      "endEquity": 244286.5,
+      "totalReturn": 1.4428649999999998,
+      "maxDrawdown": -0.353094960998115,
+      "sharpe": 0.6821117895757218,
+      "roundTrips": 0,
+      "winRate": null
+    }
+  },
+  "inSample": {
+    "strategy": {
+      "from": "2016-10-25",
+      "to": "2023-10-25",
+      "days": 1757,
+      "startEquity": 100000,
+      "endEquity": 87205.01,
+      "totalReturn": -0.12794990000000006,
+      "maxDrawdown": -0.3197715564346112,
+      "sharpe": -0.1404564816248883,
+      "roundTrips": 17,
+      "winRate": 0.23529411764705882
+    },
+    "benchmark": {
+      "from": "2016-10-25",
+      "to": "2023-10-25",
+      "days": 1745,
+      "startEquity": 100000,
+      "endEquity": 131407.48,
+      "totalReturn": 0.3140748000000002,
+      "maxDrawdown": -0.353094960998115,
+      "sharpe": 0.32897141395937696,
+      "roundTrips": 0,
+      "winRate": null
+    }
+  },
+  "holdout": {
+    "strategy": {
+      "from": "2023-10-26",
+      "to": "2026-10-26",
+      "days": 753,
+      "startEquity": 87205.01,
+      "endEquity": 192735.05,
+      "totalReturn": 1.2101373533470152,
+      "maxDrawdown": -0.07526050547682384,
+      "sharpe": 2.293159081301408,
+      "roundTrips": 5,
+      "winRate": 1
+    },
+    "benchmark": {
+      "from": "2023-10-26",
+      "to": "2026-10-26",
+      "days": 753,
+      "startEquity": 130870.6,
+      "endEquity": 244286.5,
+      "totalReturn": 0.8666262705298209,
+      "maxDrawdown": -0.12831641727169196,
+      "sharpe": 1.7751601700552766,
+      "roundTrips": 0,
+      "winRate": null
+    }
+  },
+  "trades": [
+    {
+      "date": "2017-06-28",
+      "side": "buy",
+      "quantity": 1041,
+      "price": "94.4800",
+      "fee": "10.4100"
+    },
+    {
+      "date": "2017-08-14",
+      "side": "sell",
+      "quantity": 1041,
+      "price": "93.3000",
+      "fee": "10.4100"
+    },
+    {
+      "date": "2017-10-04",
+      "side": "buy",
+      "quantity": 989,
+      "price": "97.9100",
+      "fee": "9.8900"
+    },
+    {
+      "date": "2018-02-16",
+      "side": "sell",
+      "quantity": 989,
+      "price": "100.7400",
+      "fee": "9.8900"
+    },
+    {
+      "date": "2018-05-23",
+      "side": "buy",
+      "quantity": 977,
+      "price": "101.2100",
+      "fee": "9.7700"
+    },
+    {
+      "date": "2018-10-16",
+      "side": "sell",
+      "quantity": 977,
+      "price": "98.8000",
+      "fee": "9.7700"
+    },
+    {
+      "date": "2019-01-23",
+      "side": "buy",
+      "quantity": 971,
+      "price": "99.0500",
+      "fee": "9.7100"
+    },
+    {
+      "date": "2019-06-04",
+      "side": "sell",
+      "quantity": 971,
+      "price": "102.4400",
+      "fee": "9.7100"
+    },
+    {
+      "date": "2019-07-11",
+      "side": "buy",
+      "quantity": 954,
+      "price": "105.1600",
+      "fee": "9.5400"
+    },
+    {
+      "date": "2019-08-09",
+      "side": "sell",
+      "quantity": 954,
+      "price": "101.8200",
+      "fee": "9.5400"
+    },
+    {
+      "date": "2019-09-24",
+      "side": "buy",
+      "quantity": 905,
+      "price": "107.5600",
+      "fee": "9.0500"
+    },
+    {
+      "date": "2019-12-17",
+      "side": "sell",
+      "quantity": 905,
+      "price": "104.4400",
+      "fee": "9.0500"
+    },
+    {
+      "date": "2020-02-04",
+      "side": "buy",
+      "quantity": 901,
+      "price": "105.8200",
+      "fee": "9.0100"
+    },
+    {
+      "date": "2020-03-10",
+      "side": "sell",
+      "quantity": 901,
+      "price": "92.7500",
+      "fee": "9.0100"
+    },
+    {
+      "date": "2020-05-22",
+      "side": "buy",
+      "quantity": 990,
+      "price": "83.9500",
+      "fee": "9.9000"
+    },
+    {
+      "date": "2020-09-30",
+      "side": "sell",
+      "quantity": 990,
+      "price": "93.7100",
+      "fee": "9.9000"
+    },
+    {
+      "date": "2020-11-16",
+      "side": "buy",
+      "quantity": 919,
+      "price": "101.4500",
+      "fee": "9.1900"
+    },
+    {
+      "date": "2021-09-28",
+      "side": "sell",
+      "quantity": 919,
+      "price": "127.8500",
+      "fee": "9.1900"
+    },
+    {
+      "date": "2021-10-29",
+      "side": "buy",
+      "quantity": 885,
+      "price": "131.0700",
+      "fee": "8.8500"
+    },
+    {
+      "date": "2021-12-13",
+      "side": "sell",
+      "quantity": 885,
+      "price": "129.8800",
+      "fee": "8.8500"
+    },
+    {
+      "date": "2022-01-05",
+      "side": "buy",
+      "quantity": 840,
+      "price": "137.1900",
+      "fee": "8.4000"
+    },
+    {
+      "date": "2022-03-08",
+      "side": "sell",
+      "quantity": 840,
+      "price": "136.1400",
+      "fee": "8.4000"
+    },
+    {
+      "date": "2022-08-19",
+      "side": "buy",
+      "quantity": 880,
+      "price": "129.1700",
+      "fee": "8.8000"
+    },
+    {
+      "date": "2022-09-28",
+      "side": "sell",
+      "quantity": 880,
+      "price": "122.4200",
+      "fee": "8.8000"
+    },
+    {
+      "date": "2022-10-03",
+      "side": "buy",
+      "quantity": 871,
+      "price": "124.9600",
+      "fee": "8.7100"
+    },
+    {
+      "date": "2022-10-12",
+      "side": "sell",
+      "quantity": 871,
+      "price": "117.9400",
+      "fee": "8.7100"
+    },
+    {
+      "date": "2022-11-10",
+      "side": "buy",
+      "quantity": 800,
+      "price": "129.8700",
+      "fee": "8.0000"
+    },
+    {
+      "date": "2023-01-04",
+      "side": "sell",
+      "quantity": 800,
+      "price": "128.4300",
+      "fee": "8.0000"
+    },
+    {
+      "date": "2023-01-25",
+      "side": "buy",
+      "quantity": 748,
+      "price": "133.6900",
+      "fee": "7.4800"
+    },
+    {
+      "date": "2023-03-20",
+      "side": "sell",
+      "quantity": 748,
+      "price": "127.3900",
+      "fee": "7.4800"
+    },
+    {
+      "date": "2023-05-03",
+      "side": "buy",
+      "quantity": 734,
+      "price": "131.3500",
+      "fee": "7.3400"
+    },
+    {
+      "date": "2023-05-24",
+      "side": "sell",
+      "quantity": 734,
+      "price": "124.8600",
+      "fee": "7.3400"
+    },
+    {
+      "date": "2023-07-19",
+      "side": "buy",
+      "quantity": 708,
+      "price": "129.6600",
+      "fee": "7.0800"
+    },
+    {
+      "date": "2023-08-24",
+      "side": "sell",
+      "quantity": 708,
+      "price": "120.4500",
+      "fee": "7.0800"
+    },
+    {
+      "date": "2023-11-27",
+      "side": "buy",
+      "quantity": 718,
+      "price": "119.0200",
+      "fee": "7.1800"
+    },
+    {
+      "date": "2024-02-20",
+      "side": "sell",
+      "quantity": 718,
+      "price": "131.1500",
+      "fee": "7.1800"
+    },
+    {
+      "date": "2024-03-14",
+      "side": "buy",
+      "quantity": 690,
+      "price": "135.7400",
+      "fee": "6.9000"
+    },
+    {
+      "date": "2025-01-15",
+      "side": "sell",
+      "quantity": 690,
+      "price": "171.2600",
+      "fee": "6.9000"
+    },
+    {
+      "date": "2025-05-09",
+      "side": "buy",
+      "quantity": 707,
+      "price": "168.0800",
+      "fee": "7.0700"
+    },
+    {
+      "date": "2026-02-17",
+      "side": "sell",
+      "quantity": 707,
+      "price": "230.7300",
+      "fee": "7.0700"
+    },
+    {
+      "date": "2026-03-03",
+      "side": "buy",
+      "quantity": 699,
+      "price": "226.0300",
+      "fee": "6.9900"
+    },
+    {
+      "date": "2026-03-04",
+      "side": "sell",
+      "quantity": 699,
+      "price": "227.0400",
+      "fee": "6.9900"
+    },
+    {
+      "date": "2026-04-20",
+      "side": "buy",
+      "quantity": 663,
+      "price": "244.6300",
+      "fee": "6.6300"
+    },
+    {
+      "date": "2026-08-27",
+      "side": "sell",
+      "quantity": 663,
+      "price": "285.9300",
+      "fee": "6.6300"
+    }
+  ],
+  "skipped": [],
+  "inputHash": "d6a1b72ac23154bd39b445987405b899369b2c07814fb49ec4e0fcc5af570196",
+  "resultHash": "a3593b3eae357b7b6d43d41a9ac6ccfe8f094b44a30c217b16774b1a03497ac6"
+}
